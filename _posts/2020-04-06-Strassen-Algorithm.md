@@ -92,97 +92,172 @@ nxn 행렬을 곱하면 시간복잡도가 $ O(n^3) $ 가 되지만 스트라센
 
 ### <u>4. 코드</u> <br>
 
+직접 코드를 작성하기에는 어려움이 있어서 코드를 가져와서 분석해 보았다.
 
+- getMatrix : 행렬을 만드는 함수이다.<br>
+- partitionMatrix : 행렬을 나누는 함수같은데 정확하게는 이해가 안된다..<br>
+- strassen : 스트라센 알고리즘으로 행렬을 곱하는 함수이다.<br>
+- matrixMul : 일반적인 행렬곱을 하는 함수이다.<br>
+- strassenTimeFunction : 스트라센 알고리즘 시간을 측정하는 함수이다.<br>
+- mulTimeFunction : 일반적인 행렬곱 시간을 측정하는 함수이다.<br>
 
 
 
 ```python
 import numpy as np
-def strassen_multiplication(a, b, n):
-    n1, n2 = a.shape
-    if n != n1 or n != n2:
-        print("Only square matrices are acceptted. Please pad your matrices.")
-        return 0
-    elif n % 2 != 0:
-        print("Only even matrices are acceptted. Please pad your matrices.")
-        return 0
+import time
+import matplotlib.pyplot as plt
+import math
+from random import *
 
-    if n == 2:
-        m1 = (a[0][0] + a[1][1]) * (b[0][0] + b[1][1])
-        m2 = (a[1][0] + a[1][1]) * b[0][0]
-        m3 = a[0][0] * (b[0][1] - b[1][1])
-        m4 = a[1][1] * (b[1][0] - b[0][0])
-        m5 = (a[0][0] + a[0][1]) * b[1][1]
-        m6 = (a[1][0] - a[0][0]) * (b[0][0] + b[0][1])
-        m7 = (a[0][1] - a[1][1]) * (b[1][0] + b[1][1])
+def genMatrix(n):
+    newMarix = []
+    for i in range(0,n):
+        dataline = []
+        for j in range(0,n):
+            dataline.append(10)
 
-        c11 = m1 + m4 - m5 + m7
-        c12 = m3 + m5
-        c21 = m2 + m4
-        c22 = m1 - m2 + m3 + m6
+        for j in range(0, n):
+            Vals = list(map(float, dataline))
 
-        a = np.stack((c11, c21), axis=0)
-        b = np.stack((c12, c22), axis=0)
-        c = np.stack((a, b), axis=1)
+        newMarix.append(Vals)
+    return newMarix
 
-        return c
+def partitionMatrix(matrix):
+    length = len(matrix)
+    if(length % 2 is not 0):
+        stack = []
+        for x in range(length + 1):
+            stack.append(float(0))
+        length += 1
+        matrix = np.insert(matrix, len(matrix), values=0, axis=1)
+        matrix = np.vstack([matrix, stack])
+    d = (length // 2)
+    matrix = matrix.reshape(length, length)
+    completedPartition = [matrix[:d, :d], matrix[d:, :d], matrix[:d, d:], matrix[d:, d:]]
+    return completedPartition
 
-    a11 = a[0:n // 2, 0:n // 2]
-    a12 = a[0:n // 2, n // 2:n]
-    a21 = a[n // 2:n, 0:n // 2]
-    a22 = a[n // 2:n, n // 2:n]
+def strassen(mA, mB,aN):
+    n1 = len(mA)
+    n2 = len(mB)
+    # global aN
+    if(n1 and n2 <= aN):
+        return (mA * mB)
+    else:
+        print(mA)
+        A = partitionMatrix(mA)
+        B = partitionMatrix(mB)
+        mc = np.matrix([0 for i in range(len(mA))]for j in range(len(mB)))
+        C = partitionMatrix(mc)
 
-    b11 = b[0:n // 2, 0:n // 2]
-    b12 = b[0:n // 2, n // 2:n]
-    b21 = b[n // 2:n, 0:n // 2]
-    b22 = b[n // 2:n, n // 2:n]
+        a11 = np.array(A[0])
+        a12 = np.array(A[2])
+        a21 = np.array(A[1])
+        a22 = np.array(A[3])
 
-    m1 = strassen_multiplication(a11 + a22, b11 + b22, n // 2)
-    m2 = strassen_multiplication(a21 + a22, b11, n // 2)
-    m3 = strassen_multiplication(a11, b12 - b22, n // 2)
-    m4 = strassen_multiplication(a22, b21 - b11, n // 2)
-    m5 = strassen_multiplication(a11 + a12, b22, n // 2)
-    m6 = strassen_multiplication(a21 - a11, b11 + b12, n // 2)
-    m7 = strassen_multiplication(a12 - a22, b21 + b22, n // 2)
+        b11 = np.array(B[0])
+        b12 = np.array(B[2])
+        b21 = np.array(B[1])
+        b22 = np.array(B[3])
 
-    c11 = m1 + m4 - m5 + m7
-    c12 = m3 + m5
-    c21 = m2 + m4
-    c22 = m1 - m2 + m3 + m6
+        mone = np.array(strassen((a11 + a22), (b11 + b22)))
+        mtwo = np.array(strassen((a21 + a22), b11))
+        mthree = np.array(strassen(a11, (b12 - b22)))
+        mfour = np.array(strassen(a22, (b21 - b11)))
+        mfive = np.array(strassen((a11 + a12), b22))
+        msix = np.array(strassen((a21 - a11), (b11 + b12)))
+        mseven = np.array(strassen((a12 - a22), (b21 + b22)))
 
-    a = np.concatenate((c11, c12), axis=1)
-    b = np.concatenate((c21, c22), axis=1)
-    c = np.concatenate((a, b), axis=0)
+        C[0] = np.array((mone + mfour - mfive + mseven))
+        C[2] = np.array((mthree + mfive))
+        C[1] = np.array((mtwo + mfour))
+        C[3] = np.array((mone - mtwo + mthree + msix))
 
-    return c
-
-
-n = 2              #2x2행렬 생성
-
-a = np.zeros((n, n))
-k = 0           
-for i in range(n):
-    for j in range(n):
-        a[i, j] = k
-        k += 1           #a행렬에 0부터 3까지 숫자로 채운다.
-
-b = np.zeros((n, n))
-for i in range(n):
-    for j in range(n):
-        b[i, j] = k 
-        k += 1          #b행렬에 4부터 7까지 숫자로 채운다.
+        return np.array(C)
 
 
+#단순행렬곱
+def matrixMul(mA, mB):
+    resMatirx = []
+    A = np.array(mA)
+    B = np.array(mB)
+    n = len(A)
 
-c = a.dot(b)
-print(a)  #a행렬 출력
-print(b)  #b행렬 출력
-print(c)  #c행렬(axb)
+    for i in range(0,n):
+        dataline = []
+        for j in range(0,n):
+            sum = 0
+            for k in range(0,n):
+                sum += A[i][k]*B[k][j]
+            dataline.append(sum)
+        resMatirx.append(dataline)
 
-c = strassen_multiplication(a, b, n)
-print("Result:"))
-print(c)  #스트라센으로 계산한 c행렬 출력
+    return resMatirx
+
+#strassen 시간측정
+def strassenTimeFunction(N):
+    aN = bN = N
+
+    matrixA = genMatrix(aN)
+    matrixB = genMatrix(bN)
+    matrixA = np.matrix(matrixA)
+    matrixB = np.matrix(matrixB)
+
+    startStrassen = time.time()
+    matrixC = [[0 for i in range(len(matrixA))] for j in range(len(matrixA))]
+    matrixC = strassen(matrixA, matrixB,N)
+    endStrassen = time.time()
+    strassenTime = endStrassen - startStrassen
+    print(matrixC)
+    return strassenTime
+
+#단순곱 시간측정
+def mulTimeFunction(N):
+    aN = bN = N
+
+    matrixA = genMatrix(aN)
+    matrixB = genMatrix(bN)
+    matrixA = np.matrix(matrixA)
+    matrixB = np.matrix(matrixB)
+
+    startMul = time.time()
+    matrixD = matrixMul(matrixA, matrixB)
+    endMul = time.time()
+    mulTime = endMul - startMul
+    print(matrixD,end=']')
+    return mulTime
+
+
+#시간체크
+N = int(input('N = '))
+N = pow(2, N)
+strassenTime = strassenTimeFunction(N)
+mulTime = mulTimeFunction(N)
+print("strassen time = %lf" %strassenTime)
+print("mul time = %lf" %mulTime)
+
 ```
 
-[참고](https://github.com/jjbits/AlgorithmicBits/blob/19e5ebd289f014e5b668dc37bfabd2a80d339a63/matrix/matrix.py)
+<br>
 
+### <u>5. 실행결과</u>
+
+
+
+![N=7 일 때](https://github.com/KIMHONGJUN2/KIMHONGJUN2.github.io/blob/master/assets/picture/strassen%20n=7.png?raw=true)
+
+N = 7 이므로 $ 2^7 =128 $, 128x128 행렬곱을 한 결과이다.<br>
+
+스트라센 알고리즘은 0.000995 초가 걸렸고 <br>
+
+일반 행렬곱은 1.415911 초가 걸렸다.
+
+![](https://github.com/KIMHONGJUN2/KIMHONGJUN2.github.io/blob/master/assets/picture/strassen%20n=9.png?raw=true)
+
+N = 9 이므로 $ 2^9 = 512 $, 512x512 행렬곱을 한 결과이다.
+
+스트라센 알고리즘은 0.009958 초가 걸렸고<br>
+
+일반 행렬곱은 101.741784 초가 걸렸다.<br>
+
+시간 복잡도로 보면 $ O(n^3) $ 와  $ O(n^{2.807}) $로 큰 차이가 나지 않는 것처럼 보였는데 프로그램으로 확인해서 보니 숫자가 커질수록 시간차이가 점점 커져서 차이를 실감할 수 있었다.
