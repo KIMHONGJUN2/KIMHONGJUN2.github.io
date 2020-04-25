@@ -125,7 +125,7 @@ public class Bus {
 
 #### 🕓실행 화면
 
-![](C:\Users\82105\my-awesome-site\assets\picture\greedy_bus.png)
+![](https://github.com/KIMHONGJUN2/KIMHONGJUN2.github.io/blob/master/assets/picture/greedy_bus.png?raw=true)
 
 
 
